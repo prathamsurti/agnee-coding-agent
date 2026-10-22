@@ -1,0 +1,25 @@
+{
+  "name": "agni-vscode",
+  "displayName": "Agni Dev - Coding Agent",
+  "description": "Thin WebSocket JSON-RPC bridge connecting VS Code to local Agni Agent Daemon",
+  "version": "1.0.0",
+  "publisher": "agni-dev",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["AI", "Programming Languages", "Linters"],
+  "activationEvents": ["onCommand:agni.login", "onCommand:agni.code"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agni.login",
+        "title": "Agni: Sign In (Device Flow)"
+      },
+      {
+        "command": "agni.code",
+        "title": "Agni: Run Coding Task"
+      }
+    ]
+  }
+}

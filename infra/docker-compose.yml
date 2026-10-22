@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # 1. Redis In-Memory Hot Path (OAuth codes, device status, rate limits, grace periods)
+  redis:
+    image: redis:7-alpine
+    container_name: agni-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 2. PostgreSQL 16 with pgvector extension (Users, Workspaces, Sessions, Runs)
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: agni-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: agni
+      POSTGRES_PASSWORD: agni_secret
+      POSTGRES_DB: agni_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agni -d agni_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 3. Agni API Gateway (FastAPI, Ed25519 JWT, RFC 8628 Device Flow)
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: backend-runner
+    container_name: agni-api-gateway
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+      - DATABASE_URL=postgresql+asyncpg://agni:agni_secret@postgres:5432/agni_db
+      - REDIS_URL=redis://redis:6379/0
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  # 4. Agni Web Dashboard (Next.js App Router, Monaco Diff, Observability)
+  web-dashboard:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: frontend-runner
+    container_name: agni-web-dashboard
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - API_GATEWAY_URL=http://api-gateway:8000
+    depends_on:
+      - api-gateway
+
+  # 5. Agni Agent Daemon (LangGraph + Tree-sitter + Docker Sandbox)
+  agent-daemon:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: daemon-runner
+    container_name: agni-agent-daemon
+    restart: always
+    ports:
+      - "9000:9000"
+    environment:
+      - AGNI_API_URL=http://api-gateway:8000
+    depends_on:
+      - api-gateway
+
+volumes:
+  redis_data:
+  postgres_data:
