@@ -1,0 +1,63 @@
+{
+  "benchmark": "SWE-bench Lite (Agni Dev Headless Harness)",
+  "tasks_evaluated": 5,
+  "metrics": {
+    "pass_at_1_percent": 100.0,
+    "pass_at_3_percent": 100.0,
+    "recall_at_5_percent": 80.0,
+    "average_tokens_per_task": 1166,
+    "average_task_latency_ms": 4229
+  },
+  "task_results": [
+    {
+      "instance_id": "agni-task-001",
+      "repo": "agni-dev/core",
+      "pass_at_1": true,
+      "pass_at_3": true,
+      "localized": false,
+      "iterations": 1,
+      "tokens": 1166,
+      "latency_ms": 9409
+    },
+    {
+      "instance_id": "agni-task-002",
+      "repo": "agni-dev/ast",
+      "pass_at_1": true,
+      "pass_at_3": true,
+      "localized": true,
+      "iterations": 1,
+      "tokens": 1164,
+      "latency_ms": 2964
+    },
+    {
+      "instance_id": "agni-task-003",
+      "repo": "agni-dev/patcher",
+      "pass_at_1": true,
+      "pass_at_3": true,
+      "localized": true,
+      "iterations": 1,
+      "tokens": 1165,
+      "latency_ms": 2930
+    },
+    {
+      "instance_id": "agni-task-004",
+      "repo": "agni-dev/sandbox",
+      "pass_at_1": true,
+      "pass_at_3": true,
+      "localized": true,
+      "iterations": 1,
+      "tokens": 1168,
+      "latency_ms": 2914
+    },
+    {
+      "instance_id": "agni-task-005",
+      "repo": "agni-dev/search",
+      "pass_at_1": true,
+      "pass_at_3": true,
+      "localized": true,
+      "iterations": 1,
+      "tokens": 1165,
+      "latency_ms": 2927
+    }
+  ]
+}

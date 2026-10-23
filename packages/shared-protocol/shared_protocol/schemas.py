@@ -1,7 +1,10 @@
 from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 # --- Auth Schemas ---
 class UserSignupRequest(BaseModel):
@@ -54,6 +57,37 @@ class DevicePollResponse(BaseModel):
     status: Literal["authorization_pending", "approved", "expired", "denied"]
     tokens: Optional[TokenResponse] = None
 
+class DeviceLookupResponse(BaseModel):
+    user_code: str
+    client_type: str
+    hostname: Optional[str] = None
+    os_platform: Optional[str] = None
+    ip: Optional[str] = None
+    status: str
+
+# --- API Keys & BYOK Schemas ---
+class HeadlessKeyCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    scopes: List[str] = ["read", "write"]
+
+class HeadlessKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    api_key: Optional[str] = None
+    scopes: List[str]
+    created_at: str
+    last_used_at: Optional[str] = None
+
+class LlmKeyCreate(BaseModel):
+    provider: Literal["ANTHROPIC", "OPENAI", "GOOGLE", "COHERE"]
+    api_key: str
+
+class LlmKeyResponse(BaseModel):
+    id: str
+    provider: str
+    created_at: str
+
 # --- Agent & Telemetry Schemas ---
 class AgentRunCreate(BaseModel):
     workspace_id: UUID
@@ -64,7 +98,11 @@ class AgentRunCreate(BaseModel):
 
 class AgentRunTelemetry(BaseModel):
     run_id: str
-    status: str
+    workspace_id: Optional[str] = None
+    user_id: Optional[str] = None
+    repo_name: Optional[str] = "default-repo"
+    task_prompt: Optional[str] = "Agent task"
+    status: str = "COMPLETED"
     iterations: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
@@ -73,7 +111,7 @@ class AgentRunTelemetry(BaseModel):
 
 # --- WebSocket RPC Event Schemas ---
 class WsRpcMessage(BaseModel):
-    event: Literal["PLAN_CREATED", "FILE_READ", "DIFF_APPLIED", "TEST_OUTPUT", "ERROR", "DONE"]
+    event: Literal["PLAN_CREATED", "FILE_READ", "DIFF_APPLIED", "TEST_OUTPUT", "HUMAN_APPROVAL_REQUIRED", "ERROR", "DONE"]
     run_id: str
     payload: Dict[str, Any]
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)

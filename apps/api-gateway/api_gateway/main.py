@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import engine, Base
 from .redis_client import redis_mgr
-from .routers import auth, device, telemetry
+from .security import get_jwks
+from .routers import auth, device, telemetry, keys
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,10 +39,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Standard Root JWKS endpoint for discovery
+@app.get("/.well-known/jwks.json", tags=["Authentication"])
+async def root_jwks():
+    return get_jwks()
+
 # Mount Routers
 app.include_router(auth.router)
 app.include_router(device.router)
 app.include_router(telemetry.router)
+app.include_router(keys.router)
 
 @app.get("/health", tags=["Health"])
 async def health_check():
@@ -57,6 +64,6 @@ async def root():
     return {
         "name": "agni-dev API Gateway",
         "docs": "/docs",
-        "jwks": "/api/v1/auth/.well-known/jwks.json",
+        "jwks": "/.well-known/jwks.json",
         "device_init": "/api/v1/auth/device/init"
     }

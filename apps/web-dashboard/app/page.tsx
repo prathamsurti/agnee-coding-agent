@@ -40,7 +40,7 @@ export default function HomePage() {
             Get Started Free <ArrowRight size={18} />
           </Link>
           <Link href="/activate" className="glass-panel" style={{ padding: '14px 28px', fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Terminal size={18} color="#ff8c42" /> Connect Terminal (aegis login)
+            <Terminal size={18} color="#ff8c42" /> Connect Terminal (agni login)
           </Link>
         </div>
       </section>

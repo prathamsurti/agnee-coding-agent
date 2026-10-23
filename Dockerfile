@@ -9,7 +9,8 @@ FROM python:3.12-slim-bookworm AS base
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    NODE_ENV=production
+    NODE_ENV=production \
+    PYTHONPATH="/app/apps/api-gateway:/app/apps/agent-daemon:/app/packages/shared-protocol"
 
 # Install Redis Server, Node.js 20, Curl & build essentials
 RUN apt-get update && apt-get install -y --no-install-recommends \

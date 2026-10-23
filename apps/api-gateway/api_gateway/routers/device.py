@@ -4,12 +4,13 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from packages.shared_protocol.shared_protocol.schemas import (
+from shared_protocol.schemas import (
     DeviceInitRequest,
     DeviceInitResponse,
     DeviceApproveRequest,
     DevicePollRequest,
     DevicePollResponse,
+    DeviceLookupResponse,
     TokenResponse
 )
 from ..database import get_db
@@ -22,6 +23,9 @@ router = APIRouter(prefix="/api/v1/auth/device", tags=["RFC 8628 Device Flow"])
 
 # Unambiguous alphabet without 0, O, 1, I
 UNAMBIGUOUS_CHARS = "BCDFGHJKLMNPQRSTVWXYZ23456789"
+
+def now_utc() -> datetime.datetime:
+    return datetime.datetime.now(datetime.timezone.utc)
 
 def generate_user_code() -> str:
     part1 = "".join(secrets.choice(UNAMBIGUOUS_CHARS) for _ in range(4))
@@ -59,6 +63,26 @@ async def device_init(req: DeviceInitRequest, request: Request):
         verification_uri_complete=verification_uri_complete,
         expires_in=settings.DEVICE_CODE_EXPIRE_SECONDS,
         interval=settings.DEVICE_POLL_INTERVAL_SECONDS
+    )
+
+@router.get("/lookup", response_model=DeviceLookupResponse)
+async def device_lookup(code: str):
+    code_key = code.strip().upper()
+    device_code = await redis_mgr.get_str(f"oauth:user_code:{code_key}")
+    if not device_code:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired device code.")
+
+    device_data = await redis_mgr.get_json(f"oauth:device:{device_code}")
+    if not device_data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device session expired.")
+
+    return DeviceLookupResponse(
+        user_code=device_data.get("user_code", code_key),
+        client_type=device_data.get("client_type", "CLI"),
+        hostname=device_data.get("hostname", "unknown"),
+        os_platform=device_data.get("os_platform", "unknown"),
+        ip=device_data.get("ip", "unknown"),
+        status=device_data.get("status", "PENDING")
     )
 
 @router.post("/approve")
@@ -134,7 +158,7 @@ async def device_poll(req: DevicePollRequest, db: AsyncSession = Depends(get_db)
         refresh_hash = hash_token(raw_refresh)
         family_id = uuid.uuid4()
 
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_at = now_utc() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         session_row = DeviceSession(
             user_id=uuid.UUID(user_id),
             workspace_id=uuid.UUID(workspace_id),
@@ -145,7 +169,8 @@ async def device_poll(req: DevicePollRequest, db: AsyncSession = Depends(get_db)
             refresh_token_hash=refresh_hash,
             token_family_id=family_id,
             expires_at=expires_at,
-            is_revoked=False
+            is_revoked=False,
+            created_at=now_utc()
         )
         db.add(session_row)
         await db.commit()

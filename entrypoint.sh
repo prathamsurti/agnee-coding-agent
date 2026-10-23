@@ -3,6 +3,8 @@ set -e
 
 echo "🔥 [Agni All-In-One] Booting integrated stack..."
 
+export PYTHONPATH="/app/apps/api-gateway:/app/apps/agent-daemon:/app/packages/shared-protocol:${PYTHONPATH:-}"
+
 # 1. Start background Redis server
 echo "📦 Starting Redis Server (Port 6379)..."
 redis-server --daemonize yes --loglevel warning
